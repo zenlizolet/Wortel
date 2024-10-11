@@ -1,94 +1,84 @@
 ﻿// See https://aka.ms/new-console-template for more information
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
-BigInteger m = BigInteger.Parse(Console.ReadLine());
-BigInteger p = BigInteger.Parse(Console.ReadLine());
-BigInteger q = BigInteger.Parse(Console.ReadLine()); 
-int a = int.Parse(Console.ReadLine());
-
-List<BigInteger> alleWortels = Wortels(m, p, q, a);
-alleWortels.Sort();
-foreach (BigInteger wortel in alleWortels)
+class Program
 {
-    Console.WriteLine(wortel);
-}
-//BigInteger modp = BigInteger.ModPow(a, (p+1)/4,   m);
-//Console.WriteLine($"modp: {modp}");
-//BigInteger modq = BigInteger.ModPow(a, (q+1)/4,   m);
-//Console.WriteLine($"modq: {modq}");
-
-//Tuple <BigInteger,BigInteger> wgroups = ExtendedEuclides(p,q);
-//BigInteger wp = (wgroups.Item1 % m + m) % m; //ik wil geen negatieve waardes dus ik doe eerst +m om de negatieve waardes weg te werken.
-//BigInteger wq = (wgroups.Item2 % m + m) % m;
-
-//Console.WriteLine("Wp = "+ wp);
-//Console.WriteLine("Wq = "+ wq);
-
-
-
-//Euclides(p, q);
-
-static List<BigInteger> Wortels(BigInteger m, BigInteger p, BigInteger q, BigInteger a)
+    static void Main()
     {
-        // Bereken de wortels modulo p en q
-        BigInteger modp = BigInteger.ModPow(a, (p + 1) / 4, p);
-        BigInteger modq = BigInteger.ModPow(a, (q + 1) / 4, q);
+        // Lees de invoerwaarden in als BigInteger
+        BigInteger m = BigInteger.Parse(Console.ReadLine());
+        BigInteger p = BigInteger.Parse(Console.ReadLine());
+        BigInteger q = BigInteger.Parse(Console.ReadLine()); 
+        BigInteger a =  BigInteger.Parse(Console.ReadLine());
 
-        // Bereken de multiplicatieve inversen van p en q
+        // Bereken de wortels van a modulo p en q
+        BigInteger r = BigInteger.ModPow(a, ((p + 1) / 4), p); // Dit is een wortel van a modulo p
+        BigInteger s = BigInteger.ModPow(a, ((q + 1) / 4), q); // Dit is een wortel van a modulo q
+        
+        // Bereken de waarden van wp en wq met EE
         var wgroups = ExtendedEuclides(p, q);
-        BigInteger wp = (wgroups.Item1 % p + p) % p;
-        BigInteger wq = (wgroups.Item2 % q + q) % q;
-
-        // Bereken en voeg de vier wortels toe
-        List<BigInteger> roots = new List<BigInteger>
+        BigInteger wq = (wgroups.Item1 % m + m) % m; //ik wil geen negatieve waardes dus ik doe eerst +m om de negatieve waardes weg te werken.
+        BigInteger wp = (wgroups.Item2 % m + m) % m; //ik wil geen negatieve waardes dus ik doe eerst +m om de negatieve waardes weg te werken.
+        
+        //chinese reststelling 
+        List<BigInteger> wortels = new List<BigInteger>
         {
-            MaakWortels(modp, modq, wp, wq, p, q, m),
-            MaakWortels(modp, -modq, wp, wq, p, q, m),
-            MaakWortels(-modp, modq, wp, wq, p, q, m),
-            MaakWortels(-modp, -modq, wp, wq, p, q, m)
+            ((r*wp + s*wq) % m + m) % m, 
+            ((-r*wp + s*wq) % m + m)% m,
+            ((r*wp - s*wq) % m + m) % m,
+            ((-r*wp - s*wq) % m + m) % m
         };
-        return roots;
+        
+        //sorteer en print de wortels
+        wortels.Sort();
+        foreach (BigInteger wortel in wortels)
+        {
+            Console.WriteLine(wortel);
+        }
     }
-
-    static BigInteger MaakWortels(BigInteger modp, BigInteger modq, BigInteger wp, BigInteger wq, BigInteger p, BigInteger q, BigInteger m)
-    {
-        BigInteger x = (modp * wq * q + modq * wp * p) % m;
-        return (x + m) % m; // Zorg ervoor dat x positief is
-    }
-
     static Tuple<BigInteger, BigInteger> ExtendedEuclides(BigInteger a, BigInteger b)
     {
-        if (a < b) (b, a) = (a, b);
-
-        BigInteger x0 = 1, y0 = 0, x1 = 0, y1 = 1;
-        while (b != 0)
+        //volgensmij hoeft dit niet maar als de volgorde verkeerd is dan wissel ik ze om
+        if (a < b)
         {
-            BigInteger q = a / b;
-            (a, b) = (b, a % b);
-            (x0, x1) = (x1, x0 - q * x1);
-            (y0, y1) = (y1, y0 - q * y1);
+            (b, a) = (a, b);
         }
-        return Tuple.Create(x0, y0);
-    }
 
-static BigInteger Euclides(BigInteger a, BigInteger b)
-{
-    if (a < b)
-    {
-        (b, a) = (a, b);
+        //beginwaarden
+        BigInteger a0 = a;
+        BigInteger b0 = b;
+        
+        //restwaarde als deze 0 is dan is de vorige waarde de gcd
+        BigInteger c = a % b;
+        
+        //lijsten om de waarden van x en y op te slaan
+        List<BigInteger> xs = new List<BigInteger>() { 1, 0 };
+        List<BigInteger> ys = new List<BigInteger>() { 0, 1 };
+        
+        //quotient
+        BigInteger q = a / b;
+        
+        //bereken de waarden van x en y
+        for (int i = 2; c != 0; i++)
+        {
+            q = a / b;
+            xs.Add(xs[i - 2] - ((int)q * xs[i - 1]));
+            ys.Add(ys[i - 2] - ((int)q * ys[i - 1]));
+            
+            a = b;
+            b = c;
+            c = a % b;
+        }
+        //geef de laats berekende waarden factoren terug dit zijn Wq en Wp
+        return Tuple.Create(b0 * ys.Last(), a0 * xs.Last());
     }
-
-    BigInteger c = a % b;
-    while (c != 0)
-    {
-        a = b;
-        b = c;
-        c = a % b;
-    }
-
-    Console.WriteLine($"De GGD is : {b}");
-    return b;
 }
+
+
+
+
 
 
